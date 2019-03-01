@@ -220,6 +220,75 @@ fu_util_update_shutdown (GError **error)
 }
 
 gboolean
+fu_util_enable_unit (const gchar *unit, GError **error)
+{
+	g_auto(GStrv) files = NULL;
+	g_autoptr(GDBusConnection) connection = NULL;
+	g_autoptr(GVariant) val = NULL;
+
+	connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, error);
+	if (connection == NULL)
+		return FALSE;
+
+	/* use systemd */
+	files = g_new0 (gchar *, 2);
+	files[0] = g_strdup (unit);
+	val = g_dbus_connection_call_sync (connection,
+					   "org.freedesktop.systemd1",
+					   "/org/freedesktop/systemd1",
+					   "org.freedesktop.systemd1.Manager",
+					   "EnableUnitFiles",
+					   g_variant_new ("(^asbb)",
+							  files,
+							  FALSE,  /* persist */
+							  FALSE), /* force */
+					   NULL,
+					   G_DBUS_CALL_FLAGS_NONE,
+					   -1,
+					   NULL,
+					   error);
+	if (val == NULL) {
+		g_prefix_error (error, "failed to enable unit %s: ", unit);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+gboolean
+fu_util_disable_unit (const gchar *unit, GError **error)
+{
+	g_auto(GStrv) files = NULL;
+	g_autoptr(GDBusConnection) connection = NULL;
+	g_autoptr(GVariant) val = NULL;
+
+	connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, error);
+	if (connection == NULL)
+		return FALSE;
+
+	/* use systemd */
+	files = g_new0 (gchar *, 2);
+	files[0] = g_strdup (unit);
+	val = g_dbus_connection_call_sync (connection,
+					   "org.freedesktop.systemd1",
+					   "/org/freedesktop/systemd1",
+					   "org.freedesktop.systemd1.Manager",
+					   "DisableUnitFiles",
+					   g_variant_new ("(^asb)",
+							  files,
+							  FALSE), /* persist */
+					   NULL,
+					   G_DBUS_CALL_FLAGS_NONE,
+					   -1,
+					   NULL,
+					   error);
+	if (val == NULL) {
+		g_prefix_error (error, "failed to disable unit %s: ", unit);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+gboolean
 fu_util_update_reboot (GError **error)
 {
 	g_autoptr(GDBusConnection) connection = NULL;

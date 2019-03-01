@@ -13,4 +13,4 @@ ProtectHome=yes
 ProtectSystem=full
 RestrictAddressFamilies=AF_NETLINK AF_UNIX
 SystemCallFilter=~@mount
-@dynamic_options@
+@dynamic_options_daemon@

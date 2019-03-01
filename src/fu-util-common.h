@@ -37,6 +37,10 @@ gchar		*fu_util_get_user_cache_path	(const gchar	*fn);
 SoupSession	*fu_util_setup_networking	(GError		**error);
 
 gchar		*fu_util_get_versions		(void);
+gboolean	 fu_util_enable_unit		(const gchar	*unit,
+						 GError		**error);
+gboolean	 fu_util_disable_unit		(const gchar	*unit,
+						 GError		**error);
 
 gboolean	fu_util_prompt_complete		(FwupdDeviceFlags flags,
 						 gboolean prompt,
