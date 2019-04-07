@@ -443,6 +443,32 @@ fu_main_authorize_self_sign_cb (GObject *source, GAsyncResult *res, gpointer use
 }
 
 static void
+fu_main_modify_verbose_cb (GObject *source, GAsyncResult *res, gpointer user_data)
+{
+	g_autoptr(FuMainAuthHelper) helper = (FuMainAuthHelper *) user_data;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(PolkitAuthorizationResult) auth = NULL;
+
+	/* get result */
+	auth = polkit_authority_check_authorization_finish (POLKIT_AUTHORITY (source),
+							    res, &error);
+	if (!fu_main_authorization_is_valid (auth, &error)) {
+		g_dbus_method_invocation_return_gerror (helper->invocation, error);
+		return;
+	}
+
+	if (helper->flags)
+		g_setenv ("FWUPD_VERBOSE", "1", TRUE);
+	else
+		g_unsetenv ("FWUPD_VERBOSE");
+	g_print ("Set verbose logging to %" G_GUINT64_FORMAT "\n", helper->flags);
+
+	/* success */
+	g_dbus_method_invocation_return_value (helper->invocation, NULL);
+}
+
+
+static void
 fu_main_authorize_activate_cb (GObject *source, GAsyncResult *res, gpointer user_data)
 {
 	g_autoptr(FuMainAuthHelper) helper = (FuMainAuthHelper *) user_data;
@@ -1084,6 +1110,29 @@ fu_main_daemon_method_call (GDBusConnection *connection, const gchar *sender,
 						      POLKIT_CHECK_AUTHORIZATION_FLAGS_ALLOW_USER_INTERACTION,
 						      NULL,
 						      fu_main_authorize_activate_cb,
+						      g_steal_pointer (&helper));
+		return;
+	}
+	if (g_strcmp0 (method_name, "ModifyVerbose") == 0) {
+		gboolean enable;
+		g_autoptr(FuMainAuthHelper) helper = NULL;
+		g_autoptr(PolkitSubject) subject = NULL;
+
+		g_variant_get (parameters, "(b)", &enable);
+		g_debug ("Called %s (%d)", method_name, enable);
+
+		/* authenticate */
+		helper = g_new0 (FuMainAuthHelper, 1);
+		helper->priv = priv;
+		helper->flags = enable;
+		helper->invocation = g_object_ref (invocation);
+		subject = polkit_system_bus_name_new (sender);
+		polkit_authority_check_authorization (priv->authority, subject,
+						      "org.freedesktop.fwupd.modify-verbose",
+						      NULL,
+						      POLKIT_CHECK_AUTHORIZATION_FLAGS_ALLOW_USER_INTERACTION,
+						      NULL,
+						      fu_main_modify_verbose_cb,
 						      g_steal_pointer (&helper));
 		return;
 	}

@@ -2148,6 +2148,7 @@ main (int argc, char *argv[])
 	gboolean ret;
 	gboolean verbose = FALSE;
 	gboolean version = FALSE;
+	gboolean daemon_verbose = FALSE;
 	g_autoptr(FuUtilPrivate) priv = g_new0 (FuUtilPrivate, 1);
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GPtrArray) cmd_array = fu_util_cmd_array_new ();
@@ -2192,6 +2193,10 @@ main (int argc, char *argv[])
 		{ "show-all-devices", '\0', 0, G_OPTION_ARG_NONE, &priv->show_all_devices,
 			/* TRANSLATORS: command line option */
 			_("Show devices that are not updatable"), NULL },
+		{ "daemon-verbose", '\0', 0, G_OPTION_ARG_NONE, &daemon_verbose,
+			/* TRANSLATORS: command line option */
+			_("Set the daemon to run in verbose mode for this command"), NULL },
+
 		{ NULL}
 	};
 
@@ -2449,8 +2454,28 @@ main (int argc, char *argv[])
 			    "is no longer supported by the upstream developers!\n");
 	}
 
+	/* turn on daemon logging */
+	if (daemon_verbose) {
+		if (!fwupd_client_modify_verbose (priv->client,
+						  TRUE,
+						  priv->cancellable,
+						  &error))
+			return EXIT_FAILURE;
+	}
+
 	/* run the specified command */
 	ret = fu_util_cmd_array_run (cmd_array, priv, argv[1], (gchar**) &argv[2], &error);
+
+	/* turn off daemon logging */
+	if (daemon_verbose) {
+		g_autoptr(GError) error_local = NULL;
+		if (!fwupd_client_modify_verbose (priv->client,
+						  FALSE,
+						  priv->cancellable,
+						  &error_local))
+			g_warning ("%s", error_local->message);
+	}
+
 	if (!ret) {
 		if (g_error_matches (error, FWUPD_ERROR, FWUPD_ERROR_INVALID_ARGS)) {
 			g_autofree gchar *tmp = NULL;

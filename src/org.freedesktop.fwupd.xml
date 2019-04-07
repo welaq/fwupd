@@ -308,6 +308,25 @@
     </method>
 
     <!--***********************************************************-->
+    <method name='ModifyVerbose'>
+      <doc:doc>
+        <doc:description>
+          <doc:para>
+            Turns on or off verbose logging in the daemon
+          </doc:para>
+        </doc:description>
+      </doc:doc>
+      <arg type='b' name='enable' direction='in'>
+        <doc:doc>
+          <doc:summary>
+            <doc:para>
+              Whether verbose logging should turn on or off.</doc:para>
+          </doc:summary>
+        </doc:doc>
+      </arg>
+    </method>
+
+    <!--***********************************************************-->
     <method name='Activate'>
       <doc:doc>
         <doc:description>

@@ -32,25 +32,6 @@ fu_debug_free (FuDebug *self)
 }
 
 static void
-fu_debug_ignore_cb (const gchar *log_domain,
-		    GLogLevelFlags log_level,
-		    const gchar *message,
-		    gpointer user_data)
-{
-	/* syslog */
-	switch (log_level) {
-	case G_LOG_LEVEL_INFO:
-	case G_LOG_LEVEL_CRITICAL:
-	case G_LOG_LEVEL_ERROR:
-	case G_LOG_LEVEL_WARNING:
-		g_print ("%s\n", message);
-		break;
-	default:
-		break;
-	}
-}
-
-static void
 fu_debug_handler_cb (const gchar *log_domain,
 		     GLogLevelFlags log_level,
 		     const gchar *message,
@@ -107,6 +88,31 @@ fu_debug_handler_cb (const gchar *log_domain,
 	}
 }
 
+static void
+fu_debug_dynamic_cb (const gchar *log_domain,
+		    GLogLevelFlags log_level,
+		    const gchar *message,
+		    gpointer user_data)
+{
+	/* refresh to verbose logging */
+	if (g_strcmp0 (g_getenv ("FWUPD_VERBOSE"), "1") == 0) {
+		fu_debug_handler_cb (log_domain, log_level, message, user_data);
+		return;
+	}
+
+	/* syslog */
+	switch (log_level) {
+	case G_LOG_LEVEL_INFO:
+	case G_LOG_LEVEL_CRITICAL:
+	case G_LOG_LEVEL_ERROR:
+	case G_LOG_LEVEL_WARNING:
+		g_print ("%s\n", message);
+		break;
+	default:
+		break;
+	}
+}
+
 static gboolean
 fu_debug_pre_parse_hook (GOptionContext *context,
 			 GOptionGroup *group,
@@ -148,7 +154,7 @@ fu_debug_post_parse_hook (GOptionContext *context,
 		g_log_set_default_handler (fu_debug_handler_cb, self);
 	} else {
 		/* hide all debugging except whitelisted */
-		g_log_set_default_handler (fu_debug_ignore_cb, self);
+		g_log_set_default_handler (fu_debug_dynamic_cb, self);
 		if (self->verbose_domain != NULL) {
 			for (guint i = 0; self->verbose_domain[i] != NULL; i++) {
 				g_log_set_handler (self->verbose_domain[i],
