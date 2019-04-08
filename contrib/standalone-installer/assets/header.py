@@ -110,6 +110,7 @@ def install_snap (directory, verbose, allow_reinstall, allow_older, uninstall):
             cmd += ["--allow-older"]
         if verbose:
             cmd += ["--verbose"]
+            cmd += ["--daemon-verbose"]
             print(cmd)
         subprocess.run (cmd)
 
